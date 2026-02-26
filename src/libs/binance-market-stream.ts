@@ -1,4 +1,5 @@
 import { WebSocketConnection } from './websocket-connection';
+import { AggTradePayload, BinanceStreamMessage, DepthUpdatePayload } from '../common/interfaces';
 
 enum STREAM_CHANNEL {
     AGG_TRADE = 'btcusdt@aggTrade',
@@ -90,15 +91,17 @@ export class BinanceMarketStream {
 
     private handleMessage(rawData: string): void {
         try {
-            const parsed = JSON.parse(rawData);
+            const parsed: BinanceStreamMessage = JSON.parse(rawData);
 
             const stream = parsed.stream;
             const payload = parsed.data;
 
             if (stream === STREAM_CHANNEL.AGG_TRADE) {
-                console.log('payload:', payload);
+                const aggTrade = payload as AggTradePayload;
+                console.log('aggTrade:', aggTrade);
             } else if (stream === STREAM_CHANNEL.DEPTH) {
-                console.log('payload:', payload);
+                const depthUpdate = payload as DepthUpdatePayload;
+                console.log('depthUpdate:', depthUpdate);
             }
         } catch (e) {
             console.error(`[BinanceMarketStream] handleMessage error: ${e}`);
