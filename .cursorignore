@@ -1,0 +1,81 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+packages/*/dist/
+# abandoned packages
+packages/particle-biconomy-smart-account
+
+# testing
+coverage
+
+.vscode
+
+# next.js
+.next/
+out
+out-cache
+out-particle-activity-server-cache
+out-particle-node-server-cache
+out-particle-dashboard-server-cache
+out-particle-market-server-cache
+out-particle-sdk-server-cache
+out-particle-paymaster-server-cache
+out-particle-campaign-server-cache
+out-particle-indexer-server-cache
+out-particle-inscription-market-server-cache
+out-particle-launchpad-server-cache
+out-particle-license-server-cache
+out-particle-universal-server-cache
+out-particle-pioneer-server-cache
+out-particle-universal-app-server-cache
+out-particle-universal-app-ws-server-cache
+out-particle-universal-sync-server-cache
+out-particle-twitter-server-cache
+tmp-out-*
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env.local
+.env.dev
+.env.debug
+.env.development.local
+.env.test.local
+.env.production
+.env.production.paris
+.env.production.uswest
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# turbo
+.turbo
+
+.npmrc
+
+dump.rdb
+test.ts
+
+dump.rdb
+apps/*/dist
+
+*.private__keys
+
+.idea
+
+dist
