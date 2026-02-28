@@ -1,9 +1,9 @@
 import { WebSocketConnection } from './websocket-connection';
-import { AggTradePayload, BinanceStreamMessage, DepthUpdatePayload } from '../common/interfaces';
+import { AggTradePayload, BinanceStreamMessage, DepthLevel, DepthUpdatePayload } from '../common/interfaces';
 
 enum STREAM_CHANNEL {
     AGG_TRADE = 'btcusdt@aggTrade',
-    DEPTH = 'btcusdt@depth',
+    DEPTH = 'btcusdt@depth@100ms',
 }
 
 const BINANCE_MARKET_STREAM_URL = 'wss://stream.binance.com:9443/stream';
@@ -20,6 +20,8 @@ export class BinanceMarketStream {
     private connection: WebSocketConnection | null = null;
     private isStarted: boolean = false;
     private silent: boolean = false;
+    private bids: Map<string, string> = new Map();
+    private asks: Map<string, string> = new Map();
 
     constructor(options?: {
         silent?: boolean;  // 静默模式，不输出连接日志
@@ -97,14 +99,63 @@ export class BinanceMarketStream {
             const payload = parsed.data;
 
             if (stream === STREAM_CHANNEL.AGG_TRADE) {
-                const aggTrade = payload as AggTradePayload;
-                console.log('aggTrade:', aggTrade);
+                this.applyAggTrade(payload as AggTradePayload);
             } else if (stream === STREAM_CHANNEL.DEPTH) {
                 const depthUpdate = payload as DepthUpdatePayload;
-                console.log('depthUpdate:', depthUpdate);
+                this.applyDepthUpdate(depthUpdate.b, depthUpdate.a);
             }
+
+            const orderBook = this.getOrderBook();
+            console.log('[BinanceMarketStream] Asks top10:', orderBook.asks.length, orderBook.asks.slice(0, 10).reverse());
+
+            if (stream === STREAM_CHANNEL.AGG_TRADE) {
+                const aggTrade = payload as AggTradePayload;
+                console.log('aggTrade:', aggTrade.p, aggTrade.q);
+            }
+
+            console.log('[BinanceMarketStream] Bids top10:', orderBook.bids.length, orderBook.bids.slice(0, 10));
         } catch (e) {
             console.error(`[BinanceMarketStream] handleMessage error: ${e}`);
         }
+    }
+
+    /** aggTrade 实时扣减订单簿：m=true 扣 bid，m=false 扣 ask */
+    private applyAggTrade(trade: AggTradePayload): void {
+        const side = trade.m ? this.bids : this.asks;
+        const existing = side.get(trade.p);
+        if (!existing) return;
+
+        const remaining = parseFloat(existing) - parseFloat(trade.q);
+        if (remaining <= 0) {
+            side.delete(trade.p);
+        } else {
+            side.set(trade.p, remaining.toFixed(8));
+        }
+    }
+
+    private applyDepthUpdate(newBids: DepthLevel[], newAsks: DepthLevel[]): void {
+        for (const [price, qty] of newBids) {
+            if (parseFloat(qty) === 0) {
+                this.bids.delete(price);
+            } else {
+                this.bids.set(price, qty);
+            }
+        }
+        for (const [price, qty] of newAsks) {
+            if (parseFloat(qty) === 0) {
+                this.asks.delete(price);
+            } else {
+                this.asks.set(price, qty);
+            }
+        }
+    }
+
+    /** 获取排序后的订单簿快照：bids 降序，asks 升序 */
+    public getOrderBook(): { bids: DepthLevel[]; asks: DepthLevel[] } {
+        const bids: DepthLevel[] = Array.from(this.bids, ([p, q]) => [p, q]);
+        const asks: DepthLevel[] = Array.from(this.asks, ([p, q]) => [p, q]);
+        bids.sort((a, b) => parseFloat(b[0]) - parseFloat(a[0]));
+        asks.sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]));
+        return { bids, asks };
     }
 }
